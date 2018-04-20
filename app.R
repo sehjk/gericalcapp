@@ -139,11 +139,16 @@ ui <- fluidPage(
     ),
     column(
       width = 6,
+      h3("Risk Prediction"),
+      em("*Death and Complication defined as death or the diagnosis of one of pre-defined ICD codes within 30 days of procedure"),
+      br(),
+      hr(),
       h4("Death Risk"),
       p(textOutput('risk_score', inline = T)),
       br(),
       h4("Complication Risk"),
-      dataTableOutput('risk_table')
+      br(),
+      tableOutput('risk_table')
     )
   )
 )
@@ -182,7 +187,7 @@ server <- function(input, output){
                   + input$inpatient*sum(coef_table[which(coef_table$coef == "IN_PATIENT"), "death"])
                   + coef_sums_interim)
         risk <- round((lp/(1+lp))*100,1)
-        result <- paste0("Patient's risk for death is: ", risk, "%")
+        result <- paste0("Patient's predicted risk for death is: ", risk, "%")
       } else {
         result <- "We cannot predict the risk of this procedure."
       }
@@ -192,7 +197,7 @@ server <- function(input, output){
     print(result)
   })
 
-  output$risk_table <- renderDataTable({
+  output$risk_table <- renderTable({
 
     n_meds <- length(input$meds)
     coef_cols <- which(colnames(coef_table) != "coef")
@@ -232,6 +237,7 @@ server <- function(input, output){
         result <- result[, 2:3]
         result <- result[order(-rank(result[["Risk (%)"]])),]
         result$Risk <- ifelse(result[["Risk (%)"]] >= 25 & result[["Complication"]] == "Any complication", "High", "")
+        result <- result[which(result[["Risk (%)"]] >= 5), ]
       } else {
         result <- "We cannot predict the risk of this procedure."
       }
